@@ -12,6 +12,78 @@ const WACHAT_API_BASE =
 const WACHAT_API_TOKEN = process.env.WACHAT_API_TOKEN;
 const sessionId = process.env.WACHAT_SESSION_ID;
 
+// Función auxiliar genérica para enviar solicitudes a la API de WaChat
+async function sendApiRequest(
+  payload: object,
+  errorMessagePrefix: string
+): Promise<CallToolResult> {
+  if (!WACHAT_API_TOKEN || !sessionId) {
+    const errorMessage =
+      "Error de configuración del servidor: WACHAT_API_TOKEN o WACHAT_SESSION_ID no están definidos.";
+    console.error(errorMessage);
+    return {
+      isError: true,
+      content: [{ type: "text", text: errorMessage }],
+      structuredContent: {
+        success: false,
+        error: errorMessage,
+      },
+    };
+  }
+
+  const endpoint = `${WACHAT_API_BASE}/messages/send/`;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${WACHAT_API_TOKEN}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const responseData = (await response.json()) as any;
+
+    if (response.ok) {
+      const messageData = responseData.content?.[0]?.text;
+      return {
+        content: [],
+        structuredContent: {
+          success: messageData?.status === "PENDING",
+          messageId: messageData?.key?.id || "Unknown",
+          fromMe: messageData?.key?.fromMe || false,
+        },
+      };
+    } else {
+      const errorDetail =
+        responseData.message ||
+        `${errorMessagePrefix}: ${response.status} ${response.statusText}`;
+      console.error(errorDetail);
+      return {
+        isError: true,
+        content: [{ type: "text", text: errorDetail }],
+        structuredContent: {
+          success: false,
+          error: errorDetail,
+        },
+      };
+    }
+  } catch (error: any) {
+    const catchErrorDetail =
+      error.message || "Error desconocido al contactar la API.";
+    console.error("Error al conectar con la API de WaChat:", error);
+    return {
+      isError: true,
+      content: [{ type: "text", text: catchErrorDetail }],
+      structuredContent: {
+        success: false,
+        error: catchErrorDetail,
+      },
+    };
+  }
+}
+
 export const sendMessageInputSchema = z.object({
   jid: z
     .string()
@@ -37,24 +109,6 @@ export async function executeSendMessage(
   input: z.infer<typeof sendMessageInputSchema>,
   _extra: RequestHandlerExtra<ServerRequest, ServerNotification>
 ): Promise<CallToolResult> {
-  const genericErrorMessage = "Error al procesar la solicitud sendMessage.";
-
-  if (!WACHAT_API_TOKEN || !sessionId) {
-    const errorMessage =
-      "Error de configuración del servidor: WACHAT_API_TOKEN o WACHAT_SESSION_ID no están definidos.";
-    console.error(errorMessage);
-    return {
-      isError: true,
-      content: [{ type: "text", text: errorMessage }],
-      structuredContent: {
-        // Coherente con outputSchema para errores
-        success: false,
-        error: errorMessage,
-      },
-    };
-  }
-
-  const endpoint = `${WACHAT_API_BASE}/messages/send/`;
   const payload = {
     jid: input.jid,
     type: input.isGroup ? "group" : "number",
@@ -62,56 +116,7 @@ export async function executeSendMessage(
       text: input.messageText,
     },
   };
-
-  try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${WACHAT_API_TOKEN}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const responseData = (await response.json()) as any;
-
-    if (response.ok) {
-      const messageData = responseData.content?.[0]?.text;
-      return {
-        content: [], // Obligatorio, puede estar vacío si structuredContent está presente
-        structuredContent: {
-          success: messageData?.status === "PENDING",
-          messageId: messageData?.key?.id || "Unknown",
-          fromMe: messageData?.key?.fromMe || false,
-        },
-      };
-    } else {
-      const errorDetail =
-        responseData.message ||
-        `Error al enviar mensaje: ${response.status} ${response.statusText}`;
-      console.error(errorDetail);
-      return {
-        isError: true,
-        content: [{ type: "text", text: errorDetail }],
-        structuredContent: {
-          success: false,
-          error: errorDetail,
-        },
-      };
-    }
-  } catch (error: any) {
-    const catchErrorDetail =
-      error.message || "Error desconocido al contactar la API.";
-    console.error("Error al conectar con la API de WaChat:", error);
-    return {
-      isError: true,
-      content: [{ type: "text", text: catchErrorDetail }],
-      structuredContent: {
-        success: false,
-        error: catchErrorDetail,
-      },
-    };
-  }
+  return sendApiRequest(payload, "Error al enviar mensaje");
 }
 
 export const sendLocationInputSchema = z.object({
@@ -138,23 +143,6 @@ export async function executeSendLocation(
   input: z.infer<typeof sendLocationInputSchema>,
   _extra: RequestHandlerExtra<ServerRequest, ServerNotification>
 ): Promise<CallToolResult> {
-  const genericErrorMessage = "Error al procesar la solicitud sendLocation.";
-
-  if (!WACHAT_API_TOKEN || !sessionId) {
-    const errorMessage =
-      "Error de configuración del servidor: WACHAT_API_TOKEN o WACHAT_SESSION_ID no están definidos.";
-    console.error(errorMessage);
-    return {
-      isError: true,
-      content: [{ type: "text", text: errorMessage }],
-      structuredContent: {
-        success: false,
-        error: errorMessage,
-      },
-    };
-  }
-
-  const endpoint = `${WACHAT_API_BASE}/messages/send/`;
   const payload = {
     jid: input.jid,
     type: input.isGroup ? "group" : "number",
@@ -165,54 +153,5 @@ export async function executeSendLocation(
       },
     },
   };
-
-  try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${WACHAT_API_TOKEN}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const responseData = (await response.json()) as any;
-
-    if (response.ok) {
-      const messageData = responseData.content?.[0]?.text; // Asumiendo estructura similar para ID de mensaje
-      return {
-        content: [],
-        structuredContent: {
-          success: messageData?.status === "PENDING", // Asumiendo estructura similar
-          messageId: messageData?.key?.id || "Unknown",
-          fromMe: messageData?.key?.fromMe || false, // Asumiendo estructura similar
-        },
-      };
-    } else {
-      const errorDetail =
-        responseData.message ||
-        `Error al enviar ubicación: ${response.status} ${response.statusText}`;
-      console.error(errorDetail);
-      return {
-        isError: true,
-        content: [{ type: "text", text: errorDetail }],
-        structuredContent: {
-          success: false,
-          error: errorDetail,
-        },
-      };
-    }
-  } catch (error: any) {
-    const catchErrorDetail =
-      error.message || "Error desconocido al contactar la API.";
-    console.error("Error al conectar con la API de WaChat:", error);
-    return {
-      isError: true,
-      content: [{ type: "text", text: catchErrorDetail }],
-      structuredContent: {
-        success: false,
-        error: catchErrorDetail,
-      },
-    };
-  }
+  return sendApiRequest(payload, "Error al enviar ubicación");
 }
