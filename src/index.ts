@@ -4,6 +4,9 @@ import {
   sendMessageInputSchema,
   sendMessageOutputSchema,
   executeSendMessage,
+  sendLocationInputSchema,
+  sendLocationOutputSchema,
+  executeSendLocation,
 } from "./tools/messages.js";
 
 // Las variables de entorno se leen una vez aquí, no es necesario leerlas en messages.ts también
@@ -40,6 +43,18 @@ async function main() {
       // annotations: {} // Opcional, si necesitas añadir anotaciones específicas de la herramienta
     },
     executeSendMessage // La función de lógica de la herramienta
+  );
+
+  // Registrar la herramienta para enviar ubicaciones
+  server.registerTool(
+    "sendLocation", // Nombre de la herramienta
+    {
+      description:
+        "Envía un mensaje de ubicación a un contacto o grupo de WhatsApp.",
+      inputSchema: sendLocationInputSchema.shape,
+      outputSchema: sendLocationOutputSchema.shape,
+    },
+    executeSendLocation // La función de lógica de la herramienta
   );
 
   const transport = new StdioServerTransport();
