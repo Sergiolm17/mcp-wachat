@@ -11,7 +11,6 @@ import {
 // const WACHAT_API_BASE = process.env.WACHAT_API_BASE || "https://whatsapp.taptapp.xyz";
 // const WACHAT_API_TOKEN = process.env.WACHAT_API_TOKEN;
 // const sessionId = process.env.WACHAT_SESSION_ID;
-const userId = process.env.WACHAT_USER_ID; // userId no se usa actualmente, considera si es necesario.
 
 async function main() {
   const server = new McpServer({
@@ -22,6 +21,10 @@ async function main() {
     capabilities: {
       resources: {},
       tools: {},
+    },
+    logging: {
+      level: "info",
+      data: "Server started successfully",
     },
   });
 
@@ -41,12 +44,8 @@ async function main() {
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.log(
-    "Servidor MCP WaChat conectado y herramienta sendMessage registrada."
-  );
 }
 
 main().catch((error) => {
-  console.error("Error al iniciar el servidor:", error);
   process.exit(1);
 });

@@ -12,7 +12,6 @@ const WACHAT_API_BASE =
 const WACHAT_API_TOKEN = process.env.WACHAT_API_TOKEN;
 const sessionId = process.env.WACHAT_SESSION_ID;
 
-// Definición de los esquemas con Zod
 export const sendMessageInputSchema = z.object({
   jid: z
     .string()
@@ -34,7 +33,6 @@ export const sendMessageOutputSchema = z.object({
   error: z.string().optional(),
 });
 
-// Lógica de ejecución de la herramienta
 export async function executeSendMessage(
   input: z.infer<typeof sendMessageInputSchema>,
   _extra: RequestHandlerExtra<ServerRequest, ServerNotification>
@@ -56,7 +54,7 @@ export async function executeSendMessage(
     };
   }
 
-  const endpoint = `${WACHAT_API_BASE}/sessions/${sessionId}/messages/send`;
+  const endpoint = `${WACHAT_API_BASE}/messages/send/`;
   const payload = {
     jid: input.jid,
     type: input.isGroup ? "group" : "number",
@@ -76,13 +74,15 @@ export async function executeSendMessage(
     });
 
     const responseData = (await response.json()) as any;
-    console.log(responseData);
+
     if (response.ok) {
+      const messageData = responseData.content?.[0]?.text;
       return {
         content: [], // Obligatorio, puede estar vacío si structuredContent está presente
         structuredContent: {
-          success: true,
-          messageId: responseData.id || "Unknown",
+          success: messageData?.status === "PENDING",
+          messageId: messageData?.key?.id || "Unknown",
+          fromMe: messageData?.key?.fromMe || false,
         },
       };
     } else {
