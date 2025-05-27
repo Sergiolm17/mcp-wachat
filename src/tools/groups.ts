@@ -75,18 +75,15 @@ export async function executeSearchGroups(
   // Asumimos que el endpoint /groups/search está disponible en WACHAT_API_BASE
   // y que la autenticación se maneja mediante el token Bearer.
   let url = `${WACHAT_API_BASE}/groups/search`;
-  if (input.name && input.name.trim() !== "") {
-    const queryParams = new URLSearchParams({ name: input.name.trim() });
-    url = `${url}?${queryParams.toString()}`;
-  }
 
   try {
     const response = await fetch(url, {
-      method: "GET",
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${WACHAT_API_TOKEN}`,
       },
+      body: JSON.stringify({ name: input.name }),
     });
 
     // La API de Baileys podría devolver directamente un array de grupos o un objeto con una propiedad `data`.
