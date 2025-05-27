@@ -7,7 +7,20 @@ import {
   sendLocationInputSchema,
   sendLocationOutputSchema,
   executeSendLocation,
+  sendImageInputSchema,
+  sendImageOutputSchema,
+  executeSendImage,
+  sendReactionInputSchema,
+  sendReactionOutputSchema,
+  executeSendReaction,
+  MessageKeySchema,
 } from "./tools/messages.js";
+import {
+  GroupSchema,
+  searchGroupsInputSchema,
+  searchGroupsOutputSchema,
+  executeSearchGroups,
+} from "./tools/groups.js";
 
 // Las variables de entorno se leen una vez aquí, no es necesario leerlas en messages.ts también
 // a menos que messages.ts se use de forma independiente, lo cual no parece ser el caso.
@@ -55,6 +68,40 @@ async function main() {
       outputSchema: sendLocationOutputSchema.shape,
     },
     executeSendLocation // La función de lógica de la herramienta
+  );
+
+  // Registrar la herramienta para enviar imágenes
+  server.registerTool(
+    "sendImage",
+    {
+      description:
+        "Envía un mensaje de imagen a un contacto o grupo de WhatsApp.",
+      inputSchema: sendImageInputSchema.shape,
+      outputSchema: sendImageOutputSchema.shape,
+    },
+    executeSendImage
+  );
+
+  // Registrar la herramienta para enviar reacciones
+  server.registerTool(
+    "sendReaction",
+    {
+      description: "Envía una reacción a un mensaje específico de WhatsApp.",
+      inputSchema: sendReactionInputSchema.shape,
+      outputSchema: sendReactionOutputSchema.shape,
+    },
+    executeSendReaction
+  );
+
+  // Registrar la herramienta para buscar grupos
+  server.registerTool(
+    "searchGroups",
+    {
+      description: "Busca grupos de WhatsApp por nombre.",
+      inputSchema: searchGroupsInputSchema.shape,
+      outputSchema: searchGroupsOutputSchema.shape,
+    },
+    executeSearchGroups
   );
 
   const transport = new StdioServerTransport();
